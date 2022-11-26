@@ -206,21 +206,22 @@ while True:
         temp_file = wd + 'temp_file'
         reformat = r"cat %s | tr -d '\n' | sed 's/>/\n>/g' | sed 's/]/]\n/g' | tail +2 > %s" % (fa_dir, temp_file)
         subprocess.run(reformat, shell=True)
-        subprocess.run(r'cat %s > %s' % (temp_file, fa_dir), shell=True)
-        subprocess.run(r'rm -f %s' % (temp_file), shell=True)
         
         # extract returned result
-        descrip_command = 'grep ">" %s' % (fa_dir)
+        descrip_command = 'grep ">" %s' % (temp_file)
         seq_descrip = subprocess.getoutput(descrip_command)
         protein_ids = re.findall(r'>([^\s]+)', seq_descrip)
         species = re.findall(r'\[(.*)\]', seq_descrip)
 
         # extract sequence
-        seq_command = r'grep "^\w" %s' % (fa_dir)
+        seq_command = r'grep "^\w" %s' % (temp_file)
         seq_all = subprocess.getoutput(seq_command)
         seqs = seq_all.split('\n')
+
+        # remove temp_file
+        subprocess.run(r'rm -f %s' % (temp_file), shell=True)
         
-        # use a dataframe to store info
+        # use a dataframe (with sequence length in descending order) to store info
         seq_df = pd.DataFrame({'protein_id':protein_ids, 'species':species, 'sequence':seqs})
         s1 = seq_df['sequence'].apply(len)
         s1.name = 'seq_length'
@@ -300,7 +301,7 @@ while True:
         
         # check sequences number
         limit_code = 0
-        if seq_df.shape[0] > 100:  # 记得改回去1000
+        if seq_df.shape[0] > 1000:  
             while True:
                 r = input('\nWARNING: For subsequent processes, only at most 1000 sequences is available!\
                            \nYou can select one of the options:\
